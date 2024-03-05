@@ -52,6 +52,7 @@ export const sideMenuSlice = createSlice({
   reducers: {},
 });
 
+
 export const selectSideMenu = (state: RootState) => state.sideMenu.menu;
 
 export default sideMenuSlice.reducer;
