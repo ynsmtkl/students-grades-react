@@ -43,6 +43,11 @@ const initialState: SideMenuState = {
       pathname: "/page-4",
       title: "Page 4",
     },
+    {
+      icon: "Gamepad",
+      pathname: "/page-6",
+      title: "Page 6",
+    },
   ],
 };
 

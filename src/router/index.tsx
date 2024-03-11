@@ -6,6 +6,7 @@ import Page3 from "../pages/Page3";
 import Login from "../pages/Login";
 import Page4 from "../pages/Page4";
 import Page5 from "../pages/Page5";
+import Page6 from "../pages/Page6";
 
 function Router() {
   const routes = [
@@ -32,6 +33,10 @@ function Router() {
         {
           path: "page-5",
           element: <Page5 />,
+        },
+        {
+          path: "page-6",
+          element: <Page6 />,
         },
       ],
 
