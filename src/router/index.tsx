@@ -7,6 +7,7 @@ import Login from "../pages/Login";
 import Page4 from "../pages/Page4";
 import Page5 from "../pages/Page5";
 import Page6 from "../pages/Page6";
+import AddStudent from "../pages/AddStudent";
 
 function Router() {
   const routes = [
@@ -37,6 +38,10 @@ function Router() {
         {
           path: "page-6",
           element: <Page6 />,
+        },
+        {
+          path: "Student/add",
+          element: <AddStudent />,
         },
       ],
 

@@ -1,9 +1,10 @@
 import Lucide from "../../base-components/Lucide";
 import { Menu } from "../../base-components/Headless";
 import Button from "../../base-components/Button";
-import { FormInput, FormSelect } from "../../base-components/Form";
+import { FormInput } from "../../base-components/Form";
 import * as xlsx from "xlsx";
 import { useEffect, useRef, createRef, useState } from "react";
+import { useNavigate } from 'react-router-dom';
 import { createIcons, icons } from "lucide";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import { stringToHTML } from "../../utils/helper";
@@ -16,13 +17,19 @@ interface Response {
 }
 
 function Main() {
+
+  const navigate = useNavigate();
+
+  function addStudentButtonClick(){
+    navigate('/student/add');
+  }
+
   const tableRef = createRef<HTMLDivElement>();
   const tabulator = useRef<Tabulator>();
-  const [filter, setFilter] = useState({
-    field: "nom",
-    type: "like",
-    value: "",
-  });
+  const [filter, setFilter] = useState([{field: "nom", type: "like", value: ""},
+    {field: "filiere", type: "like", value: ""},
+    {field: "numero_etudiant", type: "like", value: ""}
+  ]);
 
   const imageAssets = import.meta.glob<{
     default: string;
@@ -97,7 +104,8 @@ function Main() {
           },
           {
             title: "Filière",
-            minWidth: 200,
+            minWidth: 20,
+            width: 100,
             responsive: 0,
             field: "filiere",
             vertAlign: "middle",
@@ -194,18 +202,19 @@ function Main() {
   // Filter function
   const onFilter = () => {
     if (tabulator.current) {
-      tabulator.current.setFilter(filter.field, filter.type, filter.value);
+      tabulator.current.setFilter([{field: "nom", type: "like", value: filter[0].value},
+        {field: "filiere", type: "like", value: filter[0].value},
+        {field: "numero_etudiant", type: "like", value: filter[0].value}
+      ]);
     }
   };
 
   // On reset filter
   const onResetFilter = () => {
-    setFilter({
-      ...filter,
-      field: "nom",
-      type: "like",
-      value: "",
-    });
+    setFilter([{ ...filter, field: "nom", type: "like", value: ""},
+                    { ...filter, field: "filiere", type: "like", value: ""},
+                    { ...filter, field: "numero_etudiant", type: "like", value: ""}
+    ]);
     onFilter();
   };
 
@@ -256,7 +265,7 @@ function Main() {
       <div className="flex flex-col items-center mt-8 intro-y sm:flex-row">
         <h2 className="mr-auto text-lg font-medium">Tabulator</h2>
         <div className="flex w-full mt-4 sm:w-auto sm:mt-0">
-          <Button variant="primary" className="mr-2 shadow-md">
+          <Button variant="primary" className="mr-2 shadow-md" onClick={addStudentButtonClick}>
             Add New Product
           </Button>
           <Menu className="ml-auto sm:ml-0">
@@ -278,71 +287,25 @@ function Main() {
       </div>
       {/* BEGIN: HTML Table Data */}
       <div className="p-5 mt-5 intro-y box">
-        <div className="flex flex-col sm:flex-row sm:items-end xl:items-start">
+        <div className="flex flex-col sm:flex-row sm:items-end">
           <form
             id="tabulator-html-filter-form"
-            className="xl:flex sm:mr-auto"
+            className="xl:flex xl:w-full sm:mr-auto"
             onSubmit={(e) => {
               e.preventDefault();
               onFilter();
             }}
           >
-            <div className="items-center sm:flex sm:mr-4">
-              <label className="flex-none w-12 mr-2 xl:w-auto xl:flex-initial">
-                Field
-              </label>
-              <FormSelect
-                id="tabulator-html-filter-field"
-                value={filter.field}
-                onChange={(e) => {
-                  setFilter({
-                    ...filter,
-                    field: e.target.value,
-                  });
-                }}
-                className="w-full mt-2 2xl:w-full sm:mt-0 sm:w-auto"
-              >
-                <option value="name">Name</option>
-                <option value="category">Category</option>
-                <option value="remaining_stock">Remaining Stock</option>
-              </FormSelect>
-            </div>
-            <div className="items-center mt-2 sm:flex sm:mr-4 xl:mt-0">
-              <label className="flex-none w-12 mr-2 xl:w-auto xl:flex-initial">
-                Type
-              </label>
-              <FormSelect
-                id="tabulator-html-filter-type"
-                value={filter.type}
-                onChange={(e) => {
-                  setFilter({
-                    ...filter,
-                    type: e.target.value,
-                  });
-                }}
-                className="w-full mt-2 sm:mt-0 sm:w-auto"
-              >
-                <option value="like">like</option>
-                <option value="=">=</option>
-                <option value="<">&lt;</option>
-                <option value="<=">&lt;=</option>
-                <option value=">">&gt;</option>
-                <option value=">=">&gt;=</option>
-                <option value="!=">!=</option>
-              </FormSelect>
-            </div>
-            <div className="items-center mt-2 sm:flex sm:mr-4 xl:mt-0">
-              <label className="flex-none w-12 mr-2 xl:w-auto xl:flex-initial">
-                Value
-              </label>
+            <div className="items-center xl:w-[450px] mt-2 sm:flex sm:mr-4 xl:mt-0">
               <FormInput
                 id="tabulator-html-filter-value"
-                value={filter.value}
+                value={filter[1].value}
                 onChange={(e) => {
-                  setFilter({
-                    ...filter,
-                    value: e.target.value,
-                  });
+                  setFilter([
+                    {...filter[0], value: e.target.value, },
+                    {...filter[1], value: e.target.value, },
+                    {...filter[2], value: e.target.value, }
+                  ]);
                 }}
                 type="text"
                 className="mt-2 sm:w-40 2xl:w-full sm:mt-0"
