@@ -131,15 +131,28 @@ function Main() {
             formatter() {
               const a =
                 stringToHTML(`<div class="flex lg:justify-center items-center">
-                  <a class="flex items-center mr-3" href="javascript:;">
+                  <a class="flex items-center mr-3" id="edit" href="javascript:;">
                     <i data-lucide="check-square" class="w-4 h-4 mr-1"></i> Edit
                   </a>
-                  <a class="flex items-center text-danger" href="javascript:;">
+                  <a class="flex items-center text-danger" id="delete" href="javascript:;">
                     <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Delete
                   </a>
                 </div>`);
-              a.addEventListener("click", function () {
+              a.addEventListener("click", function (e) {
                 // On click actions
+                if (e.target && e.target.tagName.toLowerCase() === 'a') {
+                  const id = e.target.id;
+                  switch (id) {
+                    case 'edit':
+                      console.log("Edit Button Clicked");
+                      break;
+                    case 'delete':
+                      console.log("Delete Button Clicked");
+                      break;
+                    default:
+                  }
+                }
+
               });
               return a;
             },
