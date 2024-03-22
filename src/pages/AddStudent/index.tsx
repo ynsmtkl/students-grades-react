@@ -1,16 +1,24 @@
 import { ClassicEditor } from "../../base-components/Ckeditor";
 import TomSelect from "../../base-components/TomSelect";
-import { useState } from "react";
+import {useState, useRef, useEffect} from "react";
 import Button from "../../base-components/Button";
+import axios from 'axios';
 import {
   FormInput,
   FormLabel,
   FormSwitch,
   InputGroup,
 } from "../../base-components/Form";
+import Filieres from "./Filieres";
 
 function Main() {
   const [categories, setCategories] = useState(["1", "3"]);
+  const [filiere, setFiliere] = useState(0);
+
+  const handleChange = (nouvelleFiliere) => {
+    setFiliere(nouvelleFiliere);
+  };
+
   const editorConfig = {
     toolbar: {
       items: ["bold", "italic", "link"],
@@ -28,7 +36,7 @@ function Main() {
           {/* BEGIN: Form Layout */}
           <div className="p-5 intro-y box">
             <div>
-              <FormLabel htmlFor="crud-form-1">Product Name</FormLabel>
+              <FormLabel htmlFor="crud-form-1">Product Name: {filiere}</FormLabel>
               <FormInput
                 id="crud-form-1"
                 type="text"
@@ -36,6 +44,7 @@ function Main() {
                 placeholder="Input text"
               />
             </div>
+            <Filieres onChange={handleChange}/>
             <div className="mt-3">
               <FormLabel htmlFor="crud-form-2">Category</FormLabel>
               <TomSelect

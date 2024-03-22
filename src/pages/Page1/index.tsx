@@ -13,6 +13,7 @@ interface Response {
   nom?: string;
   prenom?: string;
   numero_etudiant?: string;
+  date_naissance?: string;
   filiere?: string;
 }
 
@@ -26,14 +27,139 @@ function Main() {
 
   const tableRef = createRef<HTMLDivElement>();
   const tabulator = useRef<Tabulator>();
-  const [filter, setFilter] = useState([{field: "nom", type: "like", value: ""},
+  /*const [filter, setFilter] = useState([{field: "nom", type: "like", value: ""},
     {field: "filiere", type: "like", value: ""},
     {field: "numero_etudiant", type: "like", value: ""}
-  ]);
+  ]);*/
 
-  const imageAssets = import.meta.glob<{
-    default: string;
-  }>("/src/assets/images/fakers/*.{jpg,jpeg,png,svg}", { eager: true });
+  let columns = [
+    {
+      title: "",
+      formatter: "responsiveCollapse",
+      width: 40,
+      minWidth: 30,
+      hozAlign: "center",
+      resizable: false,
+      headerSort: false,
+    },
+
+    {
+      title: "",
+      field: "prenom",
+      visible: false,
+    },
+
+    // For HTML table
+    {
+      title: "Nom Complet",
+      minWidth: 200,
+      responsive: 0,
+      field: "nom",
+      vertAlign: "middle",
+      print: false,
+      download: false,
+      formatter(cell) {
+        const response: Response = cell.getData();
+        return `<div>
+                <div class="font-medium whitespace-nowrap">${response.nom} ${response.prenom}</div>
+              </div>`;
+      },
+    },
+    {
+      title: "CNE",
+      minWidth: 200,
+      responsive: 0,
+      field: "numero_etudiant",
+      vertAlign: "middle",
+      print: false,
+      download: false,
+      formatter(cell) {
+        const response: Response = cell.getData();
+        return `<div>
+                <div class="text-slate-500 text-xs whitespace-nowrap">${response.numero_etudiant}</div>
+              </div>`;
+      },
+    },
+    {
+      title: "Filière",
+      minWidth: 20,
+      width: 100,
+      responsive: 0,
+      field: "filiere",
+      vertAlign: "middle",
+      print: false,
+      download: false,
+      formatter(cell) {
+        const response: Response = cell.getData();
+        return `<div>
+                <div class="text-slate-500 text-xs whitespace-nowrap">${response.filiere}</div>
+              </div>`;
+      },
+    },
+    {
+      title: "ACTIONS",
+      minWidth: 200,
+      field: "actions",
+      responsive: 1,
+      hozAlign: "center",
+      headerHozAlign: "center",
+      vertAlign: "middle",
+      print: false,
+      download: false,
+      formatter() {
+        const a =
+          stringToHTML(`<div class="flex lg:justify-center items-center">
+                  <a class="flex items-center mr-3" id="edit" href="javascript:;">
+                    <i data-lucide="check-square" class="w-4 h-4 mr-1"></i> Edit
+                  </a>
+                  <a class="flex items-center text-danger" id="delete" href="javascript:;">
+                    <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Delete
+                  </a>
+                </div>`);
+        a.addEventListener("click", function (e) {
+          // On click actions
+          if (e.target && e.target.tagName.toLowerCase() === 'a') {
+            const id = e.target.id;
+            switch (id) {
+              case 'edit':
+                console.log("Edit Button Clicked");
+                break;
+              case 'delete':
+                console.log("Delete Button Clicked");
+                break;
+              default:
+            }
+          }
+
+        });
+        return a;
+      },
+    },
+
+    // For print format
+    {
+      title: "Nom Complet",
+      field: "nom",
+      visible: false,
+      print: true,
+      download: true,
+    },
+    {
+      title: "CNE",
+      field: "numero_etudiant",
+      visible: false,
+      print: true,
+      download: true,
+    },
+    {
+      title: "Filière",
+      field: "filiere",
+      visible: false,
+      print: true,
+      download: true,
+    },
+  ];
+
   const initTabulator = () => {
     if (tableRef.current) {
       tabulator.current = new Tabulator(tableRef.current, {
@@ -60,127 +186,7 @@ function Main() {
             row.getElement().style.height = "50px";
 
         },
-        columns: [
-          {
-            title: "",
-            formatter: "responsiveCollapse",
-            width: 40,
-            minWidth: 30,
-            hozAlign: "center",
-            resizable: false,
-            headerSort: false,
-          },
-
-          // For HTML table
-          {
-            title: "Nom Complet",
-            minWidth: 200,
-            responsive: 0,
-            field: "nom",
-            vertAlign: "middle",
-            print: false,
-            download: false,
-            formatter(cell) {
-              const response: Response = cell.getData();
-              return `<div>
-                <div class="font-medium whitespace-nowrap">${response.nom} ${response.prenom}</div>
-              </div>`;
-            },
-          },
-          {
-            title: "CNE",
-            minWidth: 200,
-            responsive: 0,
-            field: "numero_etudiant",
-            vertAlign: "middle",
-            print: false,
-            download: false,
-            formatter(cell) {
-              const response: Response = cell.getData();
-              return `<div>
-                <div class="text-slate-500 text-xs whitespace-nowrap">${response.numero_etudiant}</div>
-              </div>`;
-            },
-          },
-          {
-            title: "Filière",
-            minWidth: 20,
-            width: 100,
-            responsive: 0,
-            field: "filiere",
-            vertAlign: "middle",
-            print: false,
-            download: false,
-            formatter(cell) {
-              const response: Response = cell.getData();
-              return `<div>
-                <div class="text-slate-500 text-xs whitespace-nowrap">${response.filiere}</div>
-              </div>`;
-            },
-          },
-          {
-            title: "ACTIONS",
-            minWidth: 200,
-            field: "actions",
-            responsive: 1,
-            hozAlign: "center",
-            headerHozAlign: "center",
-            vertAlign: "middle",
-            print: false,
-            download: false,
-            formatter() {
-              const a =
-                stringToHTML(`<div class="flex lg:justify-center items-center">
-                  <a class="flex items-center mr-3" id="edit" href="javascript:;">
-                    <i data-lucide="check-square" class="w-4 h-4 mr-1"></i> Edit
-                  </a>
-                  <a class="flex items-center text-danger" id="delete" href="javascript:;">
-                    <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Delete
-                  </a>
-                </div>`);
-              a.addEventListener("click", function (e) {
-                // On click actions
-                if (e.target && e.target.tagName.toLowerCase() === 'a') {
-                  const id = e.target.id;
-                  switch (id) {
-                    case 'edit':
-                      console.log("Edit Button Clicked");
-                      break;
-                    case 'delete':
-                      console.log("Delete Button Clicked");
-                      break;
-                    default:
-                  }
-                }
-
-              });
-              return a;
-            },
-          },
-
-          // For print format
-          {
-            title: "Nom Complet",
-            field: "nom",
-            visible: false,
-            print: true,
-            download: true,
-          },
-          {
-            title: "CNE",
-            field: "numero_etudiant",
-            visible: false,
-            print: true,
-            download: true,
-          },
-          {
-            title: "Filière",
-            field: "filiere",
-            visible: false,
-            print: true,
-            download: true,
-          },
-        ],
+        columns: columns,
       });
     }
 
@@ -194,6 +200,31 @@ function Main() {
       });
     });
   };
+
+  const columnFields = columns.map(column => column.field);
+
+  // OPTIONAL - These columns will not be searched.
+  // If you want to search all columns, set to [].
+  const ignoreColumns = []
+
+  const searchFields = columnFields.filter(field => !ignoreColumns.includes(field))
+
+  const searchBar = document.getElementById("searchBar");
+
+  searchBar?.addEventListener("input", function () {
+    // Capitalization does not affect search results, but white space does.
+    const searchValue = searchBar.value.trim();
+
+    console.log(searchValue);
+
+    // Allows searching in multiple columns at the same time
+    const filterArray = searchFields.map((field) => {
+      // You can customize the properties here
+      return {field: field, type: 'like', value: searchValue};
+    });
+
+    tabulator.current?.setFilter([filterArray])
+  });
 
 
   // Redraw table onresize
@@ -213,23 +244,20 @@ function Main() {
   };
 
   // Filter function
-  const onFilter = () => {
+  /*const onFilter = () => {
     if (tabulator.current) {
-      tabulator.current.setFilter([{field: "nom", type: "like", value: filter[0].value},
-        {field: "filiere", type: "like", value: filter[0].value},
-        {field: "numero_etudiant", type: "like", value: filter[0].value}
-      ]);
+      tabulator.current.setFilter({field: "nom", type: "like", value: filter[0].value});
     }
-  };
+  };*/
 
   // On reset filter
-  const onResetFilter = () => {
+  /*const onResetFilter = () => {
     setFilter([{ ...filter, field: "nom", type: "like", value: ""},
                     { ...filter, field: "filiere", type: "like", value: ""},
                     { ...filter, field: "numero_etudiant", type: "like", value: ""}
     ]);
     onFilter();
-  };
+  };*/
 
   // Export
   const onExportCsv = () => {
@@ -306,20 +334,18 @@ function Main() {
             className="xl:flex xl:w-full sm:mr-auto"
             onSubmit={(e) => {
               e.preventDefault();
-              onFilter();
+              /*onFilter();*/
             }}
           >
             <div className="items-center xl:w-[450px] mt-2 sm:flex sm:mr-4 xl:mt-0">
               <FormInput
-                id="tabulator-html-filter-value"
-                value={filter[1].value}
+                id="searchBar"
+                /*value={filter.value}
                 onChange={(e) => {
-                  setFilter([
-                    {...filter[0], value: e.target.value, },
-                    {...filter[1], value: e.target.value, },
-                    {...filter[2], value: e.target.value, }
-                  ]);
-                }}
+                  setFilter(
+                    {...filter, value: e.target.value, },
+                  );
+                }}*/
                 type="text"
                 className="mt-2 sm:w-40 2xl:w-full sm:mt-0"
                 placeholder="Search..."
@@ -331,7 +357,7 @@ function Main() {
                 variant="primary"
                 type="button"
                 className="w-full sm:w-16"
-                onClick={onFilter}
+                onClick={() => searchBar.value = ""}
               >
                 Go
               </Button>
@@ -340,7 +366,7 @@ function Main() {
                 variant="secondary"
                 type="button"
                 className="w-full mt-2 sm:w-16 sm:mt-0 sm:ml-1"
-                onClick={onResetFilter}
+                //onClick={onResetFilter}
               >
                 Reset
               </Button>
