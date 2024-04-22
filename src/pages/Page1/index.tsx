@@ -1,13 +1,18 @@
 import Lucide from "../../base-components/Lucide";
-import { Menu } from "../../base-components/Headless";
+import {Menu} from "../../base-components/Headless";
 import Button from "../../base-components/Button";
-import { FormInput } from "../../base-components/Form";
+import {FormInput} from "../../base-components/Form";
 import * as xlsx from "xlsx";
-import { useEffect, useRef, createRef, useState } from "react";
-import { useNavigate } from 'react-router-dom';
-import { createIcons, icons } from "lucide";
-import { TabulatorFull as Tabulator } from "tabulator-tables";
-import { stringToHTML } from "../../utils/helper";
+import React, {useEffect, useRef, createRef, useState} from "react";
+import {useNavigate} from 'react-router-dom';
+import {createIcons, icons} from "lucide";
+import {TabulatorFull as Tabulator} from "tabulator-tables";
+import {stringToHTML} from "../../utils/helper";
+import Dialog from "../../base-components/Headless/Dialog";
+import Dropzone, {DropzoneElement} from "../../base-components/Dropzone";
+import Notification, {NotificationElement} from "../../base-components/Notification";
+import axios from "axios";
+import Toastify from "toastify-js";
 
 interface Response {
   nom?: string;
@@ -20,10 +25,68 @@ interface Response {
 function Main() {
 
   const navigate = useNavigate();
+  const [warningModalPreview, setWarningModalPreview] = useState(false);
+  const [deleteModalPreview, setDeleteModalPreview] = useState(false);
+  const dropzoneSingleRef = useRef<DropzoneElement>();
+  const deleteButtonRef = useRef(null);
+  const [studentId, setStudentId] = useState(0);
 
-  function addStudentButtonClick(){
+  const showNotification = (success: boolean) => {
+    if (!success) {
+      const failedEl = document
+        .querySelectorAll("#failed-notification-content")[0]
+        .cloneNode(true) as HTMLElement;
+      failedEl.classList.remove("hidden");
+      Toastify({
+        node: failedEl,
+        duration: 3000,
+        newWindow: true,
+        close: true,
+        gravity: "top",
+        position: "right",
+        stopOnFocus: true,
+      }).showToast();
+    } else {
+      const successEl = document
+        .querySelectorAll("#success-notification-content")[0]
+        .cloneNode(true) as HTMLElement;
+      successEl.classList.remove("hidden");
+      Toastify({
+        node: successEl,
+        duration: 3000,
+        newWindow: true,
+        close: true,
+        gravity: "top",
+        position: "right",
+        stopOnFocus: true,
+      }).showToast();
+    }
+  }
+
+  function addStudentButtonClick() {
     navigate('/student/add');
   }
+
+  const deleteStudent = async (stdId) => {
+    try {
+      const response = await axios.delete(`https://ynsmtkl.tech/api/students/${stdId}/delete`);
+      console.log('Response:', response.data);
+      if (response.status === 200 && response.data[0] === "success") {
+        console.log("student deleted");
+        showNotification(true);
+      } else {
+        console.log("problem deletion of student!!");
+        showNotification(false);
+      }
+    } catch (error) {
+      console.error('Error:', error.response);
+      showNotification(false);
+      return false;
+    } finally {
+      tabulator.current?.replaceData();
+      setDeleteModalPreview(false);
+    }
+  };
 
   const tableRef = createRef<HTMLDivElement>();
   const tabulator = useRef<Tabulator>();
@@ -109,29 +172,14 @@ function Main() {
       formatter() {
         const a =
           stringToHTML(`<div class="flex lg:justify-center items-center">
-                  <a class="flex items-center mr-3" id="edit" href="javascript:;">
+                  <div class="flex items-center mr-3" id="edit">
                     <i data-lucide="check-square" class="w-4 h-4 mr-1"></i> Edit
-                  </a>
-                  <a class="flex items-center text-danger" id="delete" href="javascript:;">
+                  </div>
+                  <div class="flex items-center text-danger" id="delete">
                     <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Delete
-                  </a>
+                  </div>
                 </div>`);
-        a.addEventListener("click", function (e) {
-          // On click actions
-          if (e.target && e.target.tagName.toLowerCase() === 'a') {
-            const id = e.target.id;
-            switch (id) {
-              case 'edit':
-                console.log("Edit Button Clicked");
-                break;
-              case 'delete':
-                console.log("Delete Button Clicked");
-                break;
-              default:
-            }
-          }
 
-        });
         return a;
       },
     },
@@ -163,7 +211,13 @@ function Main() {
   const initTabulator = () => {
     if (tableRef.current) {
       tabulator.current = new Tabulator(tableRef.current, {
-        ajaxURL: "http://127.0.0.1:8000/api/students",
+        ajaxConfig: {
+          method: "GET", //set request type to Position
+          headers: {
+            "Content-type": 'application/json; charset=utf-8', //set specific content type
+          },
+        },
+        ajaxURL: "https://ynsmtkl.tech/api/students", // get all students from api
         printAsHtml: true,
         printStyled: true,
         pagination: true,
@@ -172,18 +226,12 @@ function Main() {
         layout: "fitColumns",
         responsiveLayout: "collapse",
         placeholder: "No matching records found",
-        ajaxConfig:{
-          method:"GET", //set request type to Position
-          headers: {
-            "Content-type": 'application/json; charset=utf-8', //set specific content type
-          },
-        },
-        rowFormatter:function(row){
+        rowFormatter: function (row) {
           //row - row component
 
           var data = row.getData();
 
-            row.getElement().style.height = "50px";
+          row.getElement().style.height = "50px";
 
         },
         columns: columns,
@@ -199,6 +247,30 @@ function Main() {
         nameAttr: "data-lucide",
       });
     });
+
+    tabulator.current?.on("rowClick", function (e, row) {
+      if (e.target && e.target.tagName.toLowerCase() === 'div') {
+        const id = e.target.id;
+        switch (id) {
+          case 'edit':
+            const studentData = row.getData();
+            navigate(`/student/update`, {state: {studentData}});
+            break;
+          case 'delete':
+            setStudentId(row.getIndex());
+            e.preventDefault();
+            setDeleteModalPreview(true);
+            /*deleteStudent(row.getIndex()).then((res) => {
+              if(res)
+                console.log("student deleted");
+              else console.log("problem deletion of student!!");
+            })*/
+            break;
+          default:
+        }
+      }
+      //alert("Row " + row.getIndex() + " Clicked!!!!")
+    });
   };
 
   const columnFields = columns.map(column => column.field);
@@ -206,25 +278,9 @@ function Main() {
   // OPTIONAL - These columns will not be searched.
   // If you want to search all columns, set to [].
   const ignoreColumns = []
+  const searchBarRef = useRef(null);
 
   const searchFields = columnFields.filter(field => !ignoreColumns.includes(field))
-
-  const searchBar = document.getElementById("searchBar");
-
-  searchBar?.addEventListener("input", function () {
-    // Capitalization does not affect search results, but white space does.
-    const searchValue = searchBar.value.trim();
-
-    console.log(searchValue);
-
-    // Allows searching in multiple columns at the same time
-    const filterArray = searchFields.map((field) => {
-      // You can customize the properties here
-      return {field: field, type: 'like', value: searchValue};
-    });
-
-    tabulator.current?.setFilter([filterArray])
-  });
 
 
   // Redraw table onresize
@@ -297,6 +353,37 @@ function Main() {
   };
 
   useEffect(() => {
+    const searchFunction = () => {
+      // Allows searching in multiple columns at the same time
+      const filterArray = searchFields.map((field) => {
+        // You can customize the properties here
+        return {field: field, type: 'like', value: searchBarRef.current?.value.trim()};
+      });
+
+      tabulator.current?.setFilter([filterArray])
+    };
+
+    const searchBar = searchBarRef.current;
+
+    searchBar?.addEventListener("input", searchFunction);
+
+    const buttonDelete = deleteButtonRef.current;
+
+    buttonDelete?.addEventListener("click", function () {
+      console.log("clicked");
+    });
+
+    /* File Upload */
+    const elDropzoneSingleRef = dropzoneSingleRef.current;
+    if (elDropzoneSingleRef) {
+      elDropzoneSingleRef.dropzone.on("success", () => {
+        alert("Added file.");
+      });
+      elDropzoneSingleRef.dropzone.on("error", () => {
+        alert("No more files please!");
+      });
+    }
+
     initTabulator();
     reInitOnResizeWindow();
   }, []);
@@ -312,20 +399,98 @@ function Main() {
           <Menu className="ml-auto sm:ml-0">
             <Menu.Button as={Button} className="px-2 font-normal !box">
               <span className="flex items-center justify-center w-5 h-5">
-                <Lucide icon="Plus" className="w-4 h-4" />
+                <Lucide icon="Plus" className="w-4 h-4"/>
               </span>
             </Menu.Button>
             <Menu.Items className="w-40">
-              <Menu.Item>
-                <Lucide icon="FilePlus" className="w-4 h-4 mr-2" /> New Category
+              <Menu.Item onClick={(event: React.MouseEvent) => {
+                event.preventDefault();
+                setWarningModalPreview(true);
+              }}>
+                <Lucide icon="FilePlus" className="w-4 h-4 mr-2"/> Import students
               </Menu.Item>
               <Menu.Item>
-                <Lucide icon="UserPlus" className="w-4 h-4 mr-2" /> New Group
+                <Lucide icon="UserPlus" className="w-4 h-4 mr-2"/> New Group
               </Menu.Item>
             </Menu.Items>
           </Menu>
         </div>
       </div>
+      {/* Drag Excel File Modal */}
+      <Dialog open={warningModalPreview} onClose={() => {
+        setWarningModalPreview(false);
+      }}
+      >
+        <Dialog.Panel>
+          <div className="p-5">
+            <Dropzone getRef={(el) => {
+              dropzoneSingleRef.current = el;
+            }}
+                      options={{
+                        url: "https://httpbin.org/post",
+                        thumbnailWidth: 150,
+                        maxFilesize: 0.5,
+                        maxFiles: 1,
+                        acceptedFiles: ".xlsx, .xls",
+                        headers: {"My-Awesome-Header": "header value"},
+                      }}
+                      className="dropzone"
+            >
+              <div className="text-lg font-medium">
+                Drop files here or click to upload.
+              </div>
+              <div className="text-gray-600">
+                This is just a demo dropzone. Selected files are
+                <span className="font-medium">not</span> actually
+                uploaded.
+              </div>
+            </Dropzone>
+          </div>
+          <div className="px-5 pb-2 text-center">
+            <Button type="button" variant="secondary" size="sm" onClick={() => {
+              setWarningModalPreview(false);
+            }}
+                    className="w-24"
+            >
+              Annuler
+            </Button>
+          </div>
+        </Dialog.Panel>
+      </Dialog>
+      {/* End Modal */}
+      {/* Modal Delete */}
+      <Dialog open={deleteModalPreview} onClose={() => {
+        setDeleteModalPreview(false);
+      }}
+              initialFocus={deleteButtonRef}
+      >
+        <Dialog.Panel>
+          <div className="p-5 text-center">
+            <Lucide icon="XCircle" className="w-16 h-16 mx-auto mt-3 text-danger"/>
+            <div className="mt-5 text-3xl">Are you sure?</div>
+            <div className="mt-2 text-slate-500">
+              Do you really want to delete this student? <br/>
+              This process cannot be undone.
+            </div>
+          </div>
+          <div className="px-5 pb-8 text-center">
+            <Button type="button" variant="outline-secondary" onClick={() => {
+              setDeleteModalPreview(false);
+            }}
+                    className="w-24 mr-1"
+            >
+              Cancel
+            </Button>
+            <Button type="button" variant="danger" className="w-24" ref={deleteButtonRef} onClick={() => {
+              console.log(studentId);
+              if (studentId != 0) deleteStudent(studentId);
+            }}>
+              Delete
+            </Button>
+          </div>
+        </Dialog.Panel>
+      </Dialog>
+      {/* End Modal */}
       {/* BEGIN: HTML Table Data */}
       <div className="p-5 mt-5 intro-y box">
         <div className="flex flex-col sm:flex-row sm:items-end">
@@ -337,17 +502,12 @@ function Main() {
               /*onFilter();*/
             }}
           >
-            <div className="items-center xl:w-[450px] mt-2 sm:flex sm:mr-4 xl:mt-0">
+            <div className="items-center xl:w-[450px] mt-2 sm:flex sm:mr-2 xl:mt-0">
               <FormInput
                 id="searchBar"
-                /*value={filter.value}
-                onChange={(e) => {
-                  setFilter(
-                    {...filter, value: e.target.value, },
-                  );
-                }}*/
+                ref={searchBarRef}
                 type="text"
-                className="mt-2 sm:w-40 2xl:w-full sm:mt-0"
+                className="mt-2 w-full sm:mt-0"
                 placeholder="Search..."
               />
             </div>
@@ -357,7 +517,7 @@ function Main() {
                 variant="primary"
                 type="button"
                 className="w-full sm:w-16"
-                onClick={() => searchBar.value = ""}
+                onClick={() => searchBarRef.current.value = ""}
               >
                 Go
               </Button>
@@ -379,7 +539,7 @@ function Main() {
               className="w-1/2 mr-2 sm:w-auto"
               onClick={onPrint}
             >
-              <Lucide icon="Printer" className="w-4 h-4 mr-2" /> Print
+              <Lucide icon="Printer" className="w-4 h-4 mr-2"/> Print
             </Button>
             <Menu className="w-1/2 sm:w-auto">
               <Menu.Button
@@ -387,7 +547,7 @@ function Main() {
                 variant="outline-secondary"
                 className="w-full sm:w-auto"
               >
-                <Lucide icon="FileText" className="w-4 h-4 mr-2" /> Export
+                <Lucide icon="FileText" className="w-4 h-4 mr-2"/> Export
                 <Lucide
                   icon="ChevronDown"
                   className="w-4 h-4 ml-auto sm:ml-2"
@@ -395,18 +555,18 @@ function Main() {
               </Menu.Button>
               <Menu.Items className="w-40">
                 <Menu.Item onClick={onExportCsv}>
-                  <Lucide icon="FileText" className="w-4 h-4 mr-2" /> Export CSV
+                  <Lucide icon="FileText" className="w-4 h-4 mr-2"/> Export CSV
                 </Menu.Item>
                 <Menu.Item onClick={onExportJson}>
-                  <Lucide icon="FileText" className="w-4 h-4 mr-2" /> Export
+                  <Lucide icon="FileText" className="w-4 h-4 mr-2"/> Export
                   JSON
                 </Menu.Item>
                 <Menu.Item onClick={onExportXlsx}>
-                  <Lucide icon="FileText" className="w-4 h-4 mr-2" /> Export
+                  <Lucide icon="FileText" className="w-4 h-4 mr-2"/> Export
                   XLSX
                 </Menu.Item>
                 <Menu.Item onClick={onExportHtml}>
-                  <Lucide icon="FileText" className="w-4 h-4 mr-2" /> Export
+                  <Lucide icon="FileText" className="w-4 h-4 mr-2"/> Export
                   HTML
                 </Menu.Item>
               </Menu.Items>
@@ -417,6 +577,33 @@ function Main() {
           <div id="tabulator" ref={tableRef} className="mt-5"/>
         </div>
       </div>
+
+      <Notification
+        id="success-notification-content"
+        className="flex hidden"
+      >
+        <Lucide icon="CheckCircle" className="text-success"/>
+        <div className="ml-4 mr-4">
+          <div className="font-medium">Student Deleted!</div>
+          <div className="mt-1 text-slate-500">
+            Student deleted successfully
+          </div>
+        </div>
+      </Notification>
+      <Notification
+        id="failed-notification-content"
+        className="flex hidden"
+      >
+        <Lucide icon="XCircle" className="text-danger"/>
+        <div className="ml-4 mr-4">
+          <div className="font-medium">Deletion failed!</div>
+          <div className="mt-1 text-slate-500">
+            Student deletion failed, please try again!
+          </div>
+        </div>
+      </Notification>
+
+
       {/* END: HTML Table Data */}
     </>
   );

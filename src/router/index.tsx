@@ -43,6 +43,10 @@ function Router() {
           path: "Student/add",
           element: <AddStudent />,
         },
+        {
+          path: "Student/update",
+          element: <AddStudent />,
+        },
       ],
 
     },

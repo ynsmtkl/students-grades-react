@@ -4,8 +4,8 @@ import TomSelect from "../../base-components/TomSelect";
 
 
 
-export default function Filieres({ onChange }){
-  const [select, setSelect] = useState("0");
+export default function Filieres({selectedValue, onChange }){
+  const [select, setSelect] = useState(0);
 
   const [filieres, setFilieres] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -14,9 +14,15 @@ export default function Filieres({ onChange }){
   const optionsRef = useRef([]);
 
   const handleChange = (nouvelleValeur) => {
+    //selectedValue = nouvelleValeur;
     setSelect(nouvelleValeur);
     onChange(nouvelleValeur); // Envoyer la nouvelle valeur au composant parent
   };
+
+  function getIdByAbbreviation(data,abbreviation) {
+    const element = data.find(item => item.abbreviation === abbreviation);
+    return element ? element.id : null;
+  }
 
   const fetchData = async () => {
     setLoading(true);
@@ -26,6 +32,7 @@ export default function Filieres({ onChange }){
       optionsRef.current = response.data.map((filiere) => (
         <option key={filiere.id} value={filiere.id}>({filiere.abbreviation}) {filiere.nom}</option>
       ));
+      setSelect(getIdByAbbreviation(response.data, selectedValue));
     } catch (error) {
       errorRef.current = error;
     } finally {
@@ -37,6 +44,13 @@ export default function Filieres({ onChange }){
     fetchData();
   }, []);
 
+  // Update local state when selectedValue changes
+  useEffect(() => {
+    if (selectedValue !== null && selectedValue !== undefined) {
+      setSelect(selectedValue);
+    }
+  }, [selectedValue]);
+
   return (<>
           <div className="mt-3">
             <label>Filières</label>
@@ -44,7 +58,7 @@ export default function Filieres({ onChange }){
               {loading && <p>Chargement des filières...</p>}
               {errorRef.current && <p color="red">Problème de chargement des filières</p>}
               {filieres &&
-                <TomSelect value={select} onChange={handleChange} options={{
+                <TomSelect value={select+""} onChange={handleChange} options={{
                   placeholder: "Filière de l'étudiant",
                 }} className="w-full">
                   {optionsRef.current}
