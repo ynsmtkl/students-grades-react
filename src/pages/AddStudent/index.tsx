@@ -144,7 +144,7 @@ function AddStudent() {
                             className="flex flex-col w-full sm:flex-row"
                           >
                             Prenom
-                            <span className="mt-1 text-xs sm:ml-auto sm:mt-0 text-slate-500">
+                            <span className="mt-3 text-xs sm:ml-auto sm:mt-0 text-slate-500">
 
                             </span>
                           </FormLabel>
