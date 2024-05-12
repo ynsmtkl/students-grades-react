@@ -8,6 +8,10 @@ import Page4 from "../pages/Page4";
 import Page5 from "../pages/Page5";
 import Page6 from "../pages/Page6";
 import AddStudent from "../pages/AddStudent";
+import Profile from "../pages/Profile";
+import Signup from "../pages/Signup";
+import EmailVerifiy from "../pages/EmailVerifiy";
+import EmailSent from "../pages/EmailSent";
 
 function Router() {
   const routes = [
@@ -47,12 +51,28 @@ function Router() {
           path: "Student/update",
           element: <AddStudent />,
         },
+        {
+          path: "Student/profile",
+          element: <Profile />,
+        },
       ],
 
     },
     {
       path: "login",
       element: <Login />,
+    },
+    {
+      path: "signup",
+      element: <Signup />,
+    },
+    {
+      path: "email-verification",
+      element: <EmailVerifiy />,
+    },
+    {
+      path: "email-sent",
+      element: <EmailSent />,
     },
   ];
 

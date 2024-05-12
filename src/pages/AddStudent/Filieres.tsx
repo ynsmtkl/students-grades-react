@@ -4,7 +4,7 @@ import TomSelect from "../../base-components/TomSelect";
 
 
 
-export default function Filieres({selectedValue, onChange }){
+export default function Filieres({selectedValue: selectedDateValue, onChange }){
   const [select, setSelect] = useState(0);
 
   const [filieres, setFilieres] = useState(null);
@@ -32,7 +32,8 @@ export default function Filieres({selectedValue, onChange }){
       optionsRef.current = response.data.map((filiere) => (
         <option key={filiere.id} value={filiere.id}>({filiere.abbreviation}) {filiere.nom}</option>
       ));
-      setSelect(getIdByAbbreviation(response.data, selectedValue));
+      setSelect(getIdByAbbreviation(response.data, selectedDateValue));
+      onChange(getIdByAbbreviation(response.data, selectedDateValue));
     } catch (error) {
       errorRef.current = error;
     } finally {
@@ -46,10 +47,10 @@ export default function Filieres({selectedValue, onChange }){
 
   // Update local state when selectedValue changes
   useEffect(() => {
-    if (selectedValue !== null && selectedValue !== undefined) {
-      setSelect(selectedValue);
+    if (selectedDateValue !== null && selectedDateValue !== undefined) {
+      setSelect(selectedDateValue);
     }
-  }, [selectedValue]);
+  }, [selectedDateValue]);
 
   return (<>
           <div className="mt-3">

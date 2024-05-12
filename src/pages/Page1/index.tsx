@@ -10,13 +10,14 @@ import {TabulatorFull as Tabulator} from "tabulator-tables";
 import {stringToHTML} from "../../utils/helper";
 import Dialog from "../../base-components/Headless/Dialog";
 import Dropzone, {DropzoneElement} from "../../base-components/Dropzone";
-import Notification, {NotificationElement} from "../../base-components/Notification";
+import Notification from "../../base-components/Notification";
 import axios from "axios";
 import Toastify from "toastify-js";
 
 interface Response {
   nom?: string;
   prenom?: string;
+  email?: string;
   numero_etudiant?: string;
   date_naissance?: string;
   filiere?: string;
@@ -30,6 +31,8 @@ function Main() {
   const dropzoneSingleRef = useRef<DropzoneElement>();
   const deleteButtonRef = useRef(null);
   const [studentId, setStudentId] = useState(0);
+  const [selectedFile, setSelectedFile] = useState(0);
+  const [dataTable, setDataTable] = useState<TabulatorFull>(null);
 
   const showNotification = (success: boolean) => {
     if (!success) {
@@ -69,7 +72,7 @@ function Main() {
 
   const deleteStudent = async (stdId) => {
     try {
-      const response = await axios.delete(`https://ynsmtkl.tech/api/students/${stdId}/delete`);
+      const response = await axios.delete(`http://127.0.0.1:8000/api/students/${stdId}/delete`);
       console.log('Response:', response.data);
       if (response.status === 200 && response.data[0] === "success") {
         console.log("student deleted");
@@ -134,6 +137,7 @@ function Main() {
       responsive: 0,
       field: "numero_etudiant",
       vertAlign: "middle",
+      hozAlign: "center",
       print: false,
       download: false,
       formatter(cell) {
@@ -144,14 +148,82 @@ function Main() {
       },
     },
     {
+      title: "Email",
+      minWidth: 200,
+      responsive: 0,
+      field: "email",
+      vertAlign: "middle",
+      hozAlign: "center",
+      print: false,
+      download: false,
+      formatter(cell) {
+        const response: Response = cell.getData();
+        return `<div>
+                <div class="text-slate-500 text-xs whitespace-nowrap">${response.email}</div>
+              </div>`;
+      },
+    },
+    {
+      title: "Date naissance",
+      minWidth: 200,
+      responsive: 0,
+      field: "date_naissance",
+      sorter: "date",
+      sorterParams: {format: "dd/MM/yy"},
+      vertAlign: "middle",
+      hozAlign: "center",
+      print: false,
+      download: false,
+      formatterParams: {
+        inputFormat: "iso",
+      },
+      formatter(cell) {
+        const response: Response = cell.getData();
+        return `<div>
+                <div class="text-slate-500 text-xs whitespace-nowrap">${response.date_naissance}</div>
+              </div>`;
+      },
+    },
+    // For print format
+    {
+      title: "Nom Complet",
+      field: "nom",
+      visible: false,
+      print: true,
+      download: true,
+
+    },
+    {
+      title: "Email",
+      field: "email",
+      visible: false,
+      print: true,
+      download: true,
+    },
+    {
+      title: "CNE",
+      field: "numero_etudiant",
+      visible: false,
+      print: true,
+      download: true,
+    },
+    {
+      title: "Date naissance",
+      field: "date_naissance",
+      visible: false,
+      print: true,
+      download: true,
+    },
+    {
       title: "Filière",
       minWidth: 20,
       width: 100,
       responsive: 0,
       field: "filiere",
       vertAlign: "middle",
-      print: false,
-      download: false,
+      hozAlign: "center",
+      print: true,
+      download: true,
       formatter(cell) {
         const response: Response = cell.getData();
         return `<div>
@@ -167,11 +239,15 @@ function Main() {
       hozAlign: "center",
       headerHozAlign: "center",
       vertAlign: "middle",
+      headerSort: false,
       print: false,
       download: false,
       formatter() {
         const a =
           stringToHTML(`<div class="flex lg:justify-center items-center">
+                  <div class="flex items-center mr-3" id="show">
+                    <i data-lucide="eye" class="w-4 h-4 mr-1"></i> Show
+                  </div>
                   <div class="flex items-center mr-3" id="edit">
                     <i data-lucide="check-square" class="w-4 h-4 mr-1"></i> Edit
                   </div>
@@ -182,29 +258,6 @@ function Main() {
 
         return a;
       },
-    },
-
-    // For print format
-    {
-      title: "Nom Complet",
-      field: "nom",
-      visible: false,
-      print: true,
-      download: true,
-    },
-    {
-      title: "CNE",
-      field: "numero_etudiant",
-      visible: false,
-      print: true,
-      download: true,
-    },
-    {
-      title: "Filière",
-      field: "filiere",
-      visible: false,
-      print: true,
-      download: true,
     },
   ];
 
@@ -217,9 +270,11 @@ function Main() {
             "Content-type": 'application/json; charset=utf-8', //set specific content type
           },
         },
-        ajaxURL: "https://ynsmtkl.tech/api/students", // get all students from api
+        ajaxURL: "http://127.0.0.1:8000/api/students", // get all students from api
         printAsHtml: true,
+        printHeader: "<h1 class='text-center py-5'>List des étudiants</h1>",
         printStyled: true,
+        printRowRange: "all",
         pagination: true,
         paginationSize: 10,
         paginationSizeSelector: [10, 20, 30, 40],
@@ -235,6 +290,14 @@ function Main() {
 
         },
         columns: columns,
+        printFormatter: function (tableHolderElement, tableElement) {
+          //tableHolderElement - The element that holds the header, footer and table elements
+          //tableElement - The table
+          //tableHolderElement.footerElement.style.backgroundColor = "#F1F5F9"
+          tableElement.style.borderCollapse = "collapse"
+          tableElement.borderCollapse = "collapse"
+          console.log(tableHolderElement)
+        },
       });
     }
 
@@ -251,9 +314,12 @@ function Main() {
     tabulator.current?.on("rowClick", function (e, row) {
       if (e.target && e.target.tagName.toLowerCase() === 'div') {
         const id = e.target.id;
+        const studentData = row.getData();
         switch (id) {
+          case 'show':
+            navigate('/student/profile', {state: {studentData}});
+            break;
           case 'edit':
-            const studentData = row.getData();
             navigate(`/student/update`, {state: {studentData}});
             break;
           case 'delete':
@@ -376,17 +442,52 @@ function Main() {
     /* File Upload */
     const elDropzoneSingleRef = dropzoneSingleRef.current;
     if (elDropzoneSingleRef) {
+
+      elDropzoneSingleRef.dropzone.on('addedfile', (file: Dropzone.DropzoneFile) => {
+        console.log(elDropzoneSingleRef.dropzone.options.paramName)
+      });
+
       elDropzoneSingleRef.dropzone.on("success", () => {
-        alert("Added file.");
+        console.log("Added file.");
       });
       elDropzoneSingleRef.dropzone.on("error", () => {
-        alert("No more files please!");
+        console.log("No more files please!");
       });
     }
 
     initTabulator();
     reInitOnResizeWindow();
   }, []);
+
+  const handleFileChange = (event) => {
+    setSelectedFile(event.target.files[0]);
+
+    event.preventDefault();
+
+    const formData = new FormData();
+    formData.append('file', selectedFile + "", selectedFile.name);
+
+    const config = {headers: {'content-type': 'multipart/form-data'}};
+
+    console.log(formData["file"])
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData();
+    formData.append('file', selectedFile, selectedFile.name);
+
+    const config = {headers: {'content-type': 'multipart/form-data'}};
+
+    console.log(formData["file"])
+    /*try {
+      const response = await axios.post('http://127.0.0.1:800/api/students/import', formData, config);
+      console.log("Upload successful:", response);
+    } catch (error) {
+      console.error("Upload failed:", error);
+    }*/
+  };
 
   return (
     <>
@@ -406,6 +507,7 @@ function Main() {
               <Menu.Item onClick={(event: React.MouseEvent) => {
                 event.preventDefault();
                 setWarningModalPreview(true);
+                setDataTable(tabulator.current);
               }}>
                 <Lucide icon="FilePlus" className="w-4 h-4 mr-2"/> Import students
               </Menu.Item>
@@ -423,16 +525,21 @@ function Main() {
       >
         <Dialog.Panel>
           <div className="p-5">
+            {/*<form action="" method='POST'>
+              <input type="file" name="file" accept=".xls, .xlsx" onChange={handleFileChange}/>
+            </form>*/}
             <Dropzone getRef={(el) => {
               dropzoneSingleRef.current = el;
             }}
                       options={{
-                        url: "https://httpbin.org/post",
+                        url: "http://127.0.0.1:8000/api/students/import",
                         thumbnailWidth: 150,
                         maxFilesize: 0.5,
-                        maxFiles: 1,
-                        acceptedFiles: ".xlsx, .xls",
-                        headers: {"My-Awesome-Header": "header value"},
+                        maxFiles: 2,
+                        paramName: "file",
+                        addRemoveLinks: true,
+                        acceptedFiles: ".xlsx",
+                        headers: {},
                       }}
                       className="dropzone"
             >
@@ -449,6 +556,7 @@ function Main() {
           <div className="px-5 pb-2 text-center">
             <Button type="button" variant="secondary" size="sm" onClick={() => {
               setWarningModalPreview(false);
+              dataTable.replaceData()
             }}
                     className="w-24"
             >
